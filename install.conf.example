@@ -1,0 +1,20 @@
+# User to create and install the application as
+# This is required, and for secure hardened setup should be set to something different than
+# the initial user created for the server, i.e. something different than "ubuntu" or "admin"
+APP_USERNAME=""
+
+# Designated ssh port
+# This is required, and for secure hardened setup should be set to something different than
+# the default ssh port 22
+SSH_PORT=""
+
+# Optional swap configuration settings
+# Leave empty to skip swap creation
+# example values:
+# SWAP_SIZE="16G"
+# SWAP_FILE="/swapfile"
+SWAP_SIZE=""
+SWAP_FILE=""
+
+# Apex Prime network selection. Options are afpm (mainnet) or afpmtestnet (testnet)
+NETWORK="afpmtestnet"
