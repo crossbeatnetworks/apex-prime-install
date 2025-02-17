@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-set -e
+set -e -x
 
-source ./install.conf
+source ../install.conf
 
 if [ -z "$NETWORK" ]; then
   echo 'Expected $NETWORK variable to be set and not empty. Check install.conf'
@@ -32,15 +32,23 @@ cd $HOME && rm -rf ./guild-operators-apex
 cd $HOME && git clone https://github.com/mlabs-haskell/guild-operators-apex.git
 
 # TODO: add support for x86_64 and branch based on $CPU_ARCH
+if [[ "$CPU_ARCH" == "aarch64" ]]; then
 
-# run deploy script
-cd $HOME && guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pblfs
+  # run deploy script
+  cd $HOME && guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pl
+
+  wget -c https://github.com/armada-alliance/cardano-node-binaries/raw/f756acfc946f158dcac966d006f4b293355802ff/static-binaries/cardano-9_2_1-aarch64-static-musl-ghc_966.tar.zst -O - | tar -I zstd -xv
+
+  cp $HOME/cardano-9_2_1-aarch64-static-musl-ghc_966/* $HOME/.local/bin/
+
+elif [[ "$CPU_ARCH" == "x86_64" ]]; then
+
+  # run deploy script
+  cd $HOME && guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pdlcowx
+
+fi
 
 . ${HOME}/.bashrc
-
-wget -c https://github.com/armada-alliance/cardano-node-binaries/raw/f756acfc946f158dcac966d006f4b293355802ff/static-binaries/cardano-9_2_1-aarch64-static-musl-ghc_966.tar.zst -O - | tar -I zstd -xv
-
-cp $HOME/cardano-9_2_1-aarch64-static-musl-ghc_966/* $HOME/.local/bin/
 
 # Check the cardano-cli and cardano-node versions
 cardano-cli --version

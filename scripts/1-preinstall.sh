@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-set -e
+set -e -x
 
-source ./install.conf
+source ../install.conf
+
 
 # #
 # ## 1) Basic setup
@@ -27,6 +28,11 @@ fi
 
 echo "Application Username [ $APP_USERNAME ] found in config"
 
+if [[ $APP_USERNAME == "root" ]]; then
+  echo "Don't get cute with me"
+  exit 15
+fi
+
 if [[ $USER == $APP_USERNAME ]]; then
   echo "Already running as [ $APP_USERNAME ] .. not creating a user"
 else
@@ -39,6 +45,8 @@ else
   fi
 
   HOMEDIR=$( getent passwd "$APP_USERNAME" | cut -d: -f6 )
+
+  echo "App User home directory [ $HOMEDIR ]"
 
   echo "Adding user [ $APP_USERNAME ] to sudo group"
 
@@ -64,7 +72,9 @@ else
 
   echo ""
 
-  if [[ $COPY_AUTHORIZED_KEYS ]]; then
+  if [[ "$COPY_AUTHORIZED_KEYS" == true ]]; then
+    sudo mkdir -p "$HOMEDIR/.ssh"
+    sudo chown $APP_USERNAME:$APP_USERNAME "$HOMEDIR/.ssh"
     cat "${HOME}/.ssh/authorized_keys" | sudo tee -a "$HOMEDIR/.ssh/authorized_keys" > /dev/null
     sudo chown $APP_USERNAME:$APP_USERNAME $HOMEDIR/.ssh/authorized_keys
     sudo chmod 600 $HOMEDIR/.ssh/authorized_keys
@@ -73,10 +83,14 @@ else
     echo "Skipped key copying"
   fi
 
-  sudo mkdir -p /home/
+  SCRIPTSDIR="$HOMEDIR/scripts"
 
-  sudo cp ./2-install.sh ./3-postinstall.sh ./install.config $HOMEDIR/
-  sudo chown $APP_USERNAME:$APP_USERNAME $HOMEDIR/2-install.sh $HOMEDIR/3-postinstall.sh
+  sudo mkdir -p $SCRIPTSDIR
+  sudo chown $APP_USERNAME:$APP_USERNAME $SCRIPTSDIR
+
+  sudo cp ./2-install.sh $SCRIPTSDIR/
+  sudo cp ../install.conf $HOMEDIR/
+  sudo chown $APP_USERNAME:$APP_USERNAME $SCRIPTSDIR/2-install.sh $HOMEDIR/install.conf
 
 fi
 
