@@ -1,15 +1,9 @@
 #!/usr/bin/env bash
-set -e -x
+set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
 source $SCRIPT_DIR/../install.conf
-
-# Copy stdout and stderr to log file
-if [[ -n "$LOG_FILE" ]]; then
-  sudo touch $LOG_FILE
-  exec > >(sudo tee -a "$LOG_FILE") 2>&1
-fi
 
 # Make sure user running this script is the designated app user
 if [[ "$USER" != "$APP_USERNAME" ]]; then
@@ -28,11 +22,22 @@ if [[ -z "$NODE_PORT" ]]; then
   exit 12
 fi
 
+# Copy stdout and stderr to log file
+if [[ -n "$LOG_FILE" ]]; then
+  sudo touch $LOG_FILE
+  exec > >(sudo tee -a "$LOG_FILE") 2>&1
+fi
+
+echo -n "Starting install at: "
+echo `date "+%Y-%m-%d %H:%M:%S"`
+
 # #
 # ## 3) Node installation
 # #
 
-echo "Installing Apex Prime node software using guild-operators-apex scripts"
+echo "Installing node software using guild-operators-apex scripts"
+
+set -x
 
 CPU_ARCH=`uname -m`
 
@@ -56,7 +61,7 @@ if [[ "$CPU_ARCH" == "aarch64" ]]; then
   # run deploy script
   guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pl
 
-  wget -c https://github.com/armada-alliance/cardano-node-binaries/raw/f756acfc946f158dcac966d006f4b293355802ff/static-binaries/cardano-9_2_1-aarch64-static-musl-ghc_966.tar.zst -O - | tar -I zstd -xv
+  wget -nv -c https://github.com/armada-alliance/cardano-node-binaries/raw/f756acfc946f158dcac966d006f4b293355802ff/static-binaries/cardano-9_2_1-aarch64-static-musl-ghc_966.tar.zst -O - | tar -I zstd -xv
 
   cp $HOME/cardano-9_2_1-aarch64-static-musl-ghc_966/* $HOME/.local/bin/
 
@@ -93,6 +98,9 @@ cardano-node --version
 
 # Stop echoing commands in output
 set +x
+
+echo -n "Finished install at: "
+echo `date "+%Y-%m-%d %H:%M:%S"`
 
 echo -e "\n *** IMPORTANT *** Make sure your firewall is configured to allow incoming TCP connections on port [ $NODE_PORT ]\n"
 echo -e "Now configure your $CNODE_HOME/files/topology.json and $CNODE_HOME/scripts/env"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -e -x
+set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
@@ -11,11 +11,16 @@ if [[ -n "$LOG_FILE" ]]; then
   exec > >(sudo tee -a "$LOG_FILE") 2>&1
 fi
 
+echo -n "Starting preinstall at: "
+echo `date "+%Y-%m-%d %H:%M:%S"`
+
 # #
 # ## 1) Basic setup
 # #
 
 echo "Doing basic setup..."
+
+set -x
 
 # update system and set autoremove and autoclean
 sudo apt-get update -y
@@ -39,7 +44,7 @@ fi
 echo "Application Username [ $APP_USERNAME ] found in config"
 
 if [[ $APP_USERNAME == "root" ]]; then
-  echo "Don't get cute with me"
+  echo "That is not a serious config"
   exit 99
 fi
 
@@ -64,9 +69,8 @@ else
 
   sudo usermod -aG $USER $APP_USERNAME
 
-  echo "Setting sudo password for [ $APP_USERNAME ] user"
+  echo "Set a sudo password for [ $APP_USERNAME ] user"
 
-  # set password for the new user (needed for sudo)
   sudo passwd $APP_USERNAME
 
   COPY_AUTHORIZED_KEYS=""
@@ -80,7 +84,7 @@ else
     fi
   done
 
-  echo ""
+  echo
 
   if [[ "$COPY_AUTHORIZED_KEYS" == true ]]; then
     sudo mkdir -p "$APP_USER_HOME_DIR/.ssh"
@@ -94,8 +98,6 @@ else
   fi
 
 fi
-
-# test ssh as the new user
 
 # check for existing swap
 sudo swapon -s
@@ -218,6 +220,9 @@ fi
 # Disable writing commands to output, only thing remaining are echo statements
 # and no need to double those
 set +x
+
+echo -n "Finished preinstall at: "
+echo `date "+%Y-%m-%d %H:%M:%S"`
 
 echo -e "\nPreinstall Done. Be sure to verify ssh connectivity before exiting out of current session."
 echo -e "Reboot test is also recommended here (BUT ONLY AFTER ssh functionality is verified).\n"
