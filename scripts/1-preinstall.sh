@@ -1,8 +1,15 @@
 #!/usr/bin/env bash
 set -e -x
 
-source ../install.conf
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+source $SCRIPT_DIR/../install.conf
+
+# Copy stdout and stderr to log file
+if [[ -n "$LOG_FILE" ]]; then
+  sudo touch $LOG_FILE
+  exec > >(sudo tee -a "$LOG_FILE") 2>&1
+fi
 
 # #
 # ## 1) Basic setup
@@ -11,10 +18,13 @@ source ../install.conf
 echo "Doing basic setup..."
 
 # update system and set autoremove and autoclean
-sudo apt update -y && sudo apt upgrade -y && sudo apt autoremove -y && sudo apt autoclean -y
+sudo apt-get update -y
+sudo apt-get upgrade -y
+sudo apt-get autoremove -y
+sudo apt-get autoclean -y
 
-# install basic tools
-sudo apt-get install screen curl htop -y
+# install basic tools and packages used in preinstall
+sudo apt-get install screen curl htop fail2ban python3-systemd -y
 
 if [ -z "$SSH_PORT" ]; then
   echo 'Expected $SSH_PORT variable to be set and not empty. Check install.conf'
@@ -23,14 +33,14 @@ fi
 
 if [ -z "$APP_USERNAME" ]; then
   echo 'Expected $APP_USERNAME variable to be set and not empty. Check install.conf'
-  exit 10
+  exit 11
 fi
 
 echo "Application Username [ $APP_USERNAME ] found in config"
 
 if [[ $APP_USERNAME == "root" ]]; then
   echo "Don't get cute with me"
-  exit 15
+  exit 99
 fi
 
 if [[ $USER == $APP_USERNAME ]]; then
@@ -44,9 +54,9 @@ else
     echo "User [ $APP_USERNAME ] created."
   fi
 
-  HOMEDIR=$( getent passwd "$APP_USERNAME" | cut -d: -f6 )
+  APP_USER_HOME_DIR=$( getent passwd "$APP_USERNAME" | cut -d: -f6 )
 
-  echo "App User home directory [ $HOMEDIR ]"
+  echo "App User home directory [ $APP_USER_HOME_DIR ]"
 
   echo "Adding user [ $APP_USERNAME ] to sudo group"
 
@@ -73,24 +83,15 @@ else
   echo ""
 
   if [[ "$COPY_AUTHORIZED_KEYS" == true ]]; then
-    sudo mkdir -p "$HOMEDIR/.ssh"
-    sudo chown $APP_USERNAME:$APP_USERNAME "$HOMEDIR/.ssh"
-    cat "${HOME}/.ssh/authorized_keys" | sudo tee -a "$HOMEDIR/.ssh/authorized_keys" > /dev/null
-    sudo chown $APP_USERNAME:$APP_USERNAME $HOMEDIR/.ssh/authorized_keys
-    sudo chmod 600 $HOMEDIR/.ssh/authorized_keys
+    sudo mkdir -p "$APP_USER_HOME_DIR/.ssh"
+    sudo chown $APP_USERNAME:$APP_USERNAME "$APP_USER_HOME_DIR/.ssh"
+    cat "${HOME}/.ssh/authorized_keys" | sudo tee -a "$APP_USER_HOME_DIR/.ssh/authorized_keys" > /dev/null
+    sudo chown $APP_USERNAME:$APP_USERNAME $APP_USER_HOME_DIR/.ssh/authorized_keys
+    sudo chmod 600 $APP_USER_HOME_DIR/.ssh/authorized_keys
     echo "Copied authorized keys to $APP_USERNAME"
   else
     echo "Skipped key copying"
   fi
-
-  SCRIPTSDIR="$HOMEDIR/scripts"
-
-  sudo mkdir -p $SCRIPTSDIR
-  sudo chown $APP_USERNAME:$APP_USERNAME $SCRIPTSDIR
-
-  sudo cp ./2-install.sh $SCRIPTSDIR/
-  sudo cp ../install.conf $HOMEDIR/
-  sudo chown $APP_USERNAME:$APP_USERNAME $SCRIPTSDIR/2-install.sh $HOMEDIR/install.conf
 
 fi
 
@@ -172,9 +173,6 @@ sudo systemctl restart ssh
 
 # Disable root direct user access
 
-# install fail2ban
-sudo apt-get install fail2ban python3-systemd -y
-
 sudo tee /etc/fail2ban/jail.d/local.conf << CONFIGBLOCK
 
 [sshd]
@@ -191,6 +189,9 @@ CONFIGBLOCK
 # restart fail2ban service
 sudo systemctl restart fail2ban
 
+# wait a couple seconds for fail2ban to start up
+sleep 2
+
 # check fail2ban service status
 sudo systemctl status fail2ban
 
@@ -200,9 +201,37 @@ sudo tail /var/log/fail2ban.log
 
 sudo fail2ban-client status sshd
 
-echo ""
-echo "Preinstall Done. Be sure to verify ssh connectivity before exiting out of current session."
-echo "Reboot test is also recommended here after ssh functionality is verified."
-echo ""
+# Copy scripts to app user home directory if app user is not current user
+if [[ $USER != $APP_USERNAME ]]; then
+
+  APP_USER_SCRIPTS_DIR="$APP_USER_HOME_DIR/scripts"
+
+  sudo mkdir -p $APP_USER_SCRIPTS_DIR
+  sudo chown $APP_USERNAME:$APP_USERNAME $APP_USER_SCRIPTS_DIR
+
+  sudo cp $SCRIPT_DIR/2-install.sh $APP_USER_SCRIPTS_DIR/
+  sudo cp $SCRIPT_DIR/../install.conf $APP_USER_HOME_DIR/
+  sudo chown $APP_USERNAME:$APP_USERNAME $APP_USER_SCRIPTS_DIR/2-install.sh $APP_USER_HOME_DIR/install.conf
+
+fi
+
+# Disable writing commands to output, only thing remaining are echo statements
+# and no need to double those
+set +x
+
+echo -e "\nPreinstall Done. Be sure to verify ssh connectivity before exiting out of current session."
+echo -e "Reboot test is also recommended here (BUT ONLY AFTER ssh functionality is verified).\n"
+
+echo " *** IMPORTANT *** : Make sure your firewall allows incoming TCP connections on port $SSH_PORT"
+
+if [[ $USER != $APP_USERNAME ]]; then
+  echo " *** IMPORTANT *** : Make sure you can initiate a new ssh connection to this server and execute sudo as [ $APP_USERNAME ]"
+else
+  echo " *** IMPORTANT *** : Make sure you can initiate a new ssh connection to this server"
+fi
+
+echo -e " *** IMPORTANT *** : BEFORE disconnecting your current session\n"
+
+echo "Once this is confirmed, the next step is to run the 2-install.sh script as $APP_USERNAME"
 
 exit 0

@@ -1,41 +1,60 @@
 #!/usr/bin/env bash
 set -e -x
 
-source ../install.conf
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
-if [ -z "$NETWORK" ]; then
+source $SCRIPT_DIR/../install.conf
+
+# Copy stdout and stderr to log file
+if [[ -n "$LOG_FILE" ]]; then
+  sudo touch $LOG_FILE
+  exec > >(sudo tee -a "$LOG_FILE") 2>&1
+fi
+
+# Make sure user running this script is the designated app user
+if [[ "$USER" != "$APP_USERNAME" ]]; then
+  echo "Please run the install script as $APP_USERNAME user"
+  exit 80
+fi
+
+# Make sure required config options are set
+if [[ -z "$NETWORK" ]]; then
   echo 'Expected $NETWORK variable to be set and not empty. Check install.conf'
   exit 11
+fi
+
+if [[ -z "$NODE_PORT" ]]; then
+  echo 'Expected $NODE_PORT variable to be set and not empty. Check install.conf'
+  exit 12
 fi
 
 # #
 # ## 3) Node installation
 # #
 
-# TODO: Add a check to make sure this script is being run by the application user
-
 echo "Installing Apex Prime node software using guild-operators-apex scripts"
 
 CPU_ARCH=`uname -m`
 
-if [ -z "$CPU_ARCH" ]; then
+if [[ -z "$CPU_ARCH" ]]; then
   echo 'CPU Architecture not able to be identified via uname -m'
   exit 12
 fi
 
 echo "CPU Architecture identified as [ $CPU_ARCH ]"
 
-# Clear out guild-operators-apex directory
-cd $HOME && rm -rf ./guild-operators-apex
+cd $HOME
+
+# Clear out guild-operators-apex directory if it exists
+rm -rf ./guild-operators-apex
 
 # Clone guild-operators-apex repository
-cd $HOME && git clone https://github.com/mlabs-haskell/guild-operators-apex.git
+git clone https://github.com/mlabs-haskell/guild-operators-apex.git
 
-# TODO: add support for x86_64 and branch based on $CPU_ARCH
 if [[ "$CPU_ARCH" == "aarch64" ]]; then
 
   # run deploy script
-  cd $HOME && guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pl
+  guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pl
 
   wget -c https://github.com/armada-alliance/cardano-node-binaries/raw/f756acfc946f158dcac966d006f4b293355802ff/static-binaries/cardano-9_2_1-aarch64-static-musl-ghc_966.tar.zst -O - | tar -I zstd -xv
 
@@ -44,11 +63,19 @@ if [[ "$CPU_ARCH" == "aarch64" ]]; then
 elif [[ "$CPU_ARCH" == "x86_64" ]]; then
 
   # run deploy script
-  cd $HOME && guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pdlcowx
+  guild-operators-apex/scripts/cnode-helper-scripts/guild-deploy.sh -b main -n $NETWORK -t cnode -s pdlcowx
+
+else
+
+  echo "Unrecognized or unsupported CPU architecture [ $CPU_ARCH ]"
+  exit 91
 
 fi
 
-. ${HOME}/.bashrc
+source ${HOME}/.bashrc
+
+# Update node port in env file
+sed -i -e "s/^#CNODE_PORT=6000/CNODE_PORT=$NODE_PORT/" "$CNODE_HOME/scripts/env"
 
 # Check the cardano-cli and cardano-node versions
 cardano-cli --version
@@ -64,10 +91,16 @@ cardano-node --version
 #
 # Make sure cardano-node is 9.2.1
 
-# TODO: Add node tcp port configuration value and update the port in env file
+# Stop echoing commands in output
+set +x
 
-echo "Okay now configure your $CNODE_HOME/files/topology.json and $CNODE_HOME/scripts/env"
-echo "Then you can start your node by running the below commands:"
-echo ""
-echo "sudo systemctl start cnode.service"
-echo "sudo systemctl start cnode-submit-api.service"
+echo -e "\n *** IMPORTANT *** Make sure your firewall is configured to allow incoming TCP connections on port [ $NODE_PORT ]\n"
+echo -e "Now configure your $CNODE_HOME/files/topology.json and $CNODE_HOME/scripts/env"
+echo -e "Then you can start your node by running the below commands:\n"
+echo -e "  sudo systemctl start cnode.service"
+echo -e "  sudo systemctl start cnode-submit-api.service\n"
+echo -e "Once cnode.service is running, you can check status by running the below commands:\n"
+echo -e "  sudo systemctl status cnode.service"
+echo -e "  sudo systemctl status cnode-submit-api.service\n"
+echo -e "You can monitor node sync status and network status with the below command:\n"
+echo -e "  cd \$CNODE_HOME && scripts/gLiveView.sh"

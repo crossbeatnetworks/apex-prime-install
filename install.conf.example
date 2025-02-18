@@ -3,10 +3,17 @@
 # the initial user created for the server, i.e. something different than "ubuntu" or "admin"
 APP_USERNAME=""
 
+# Log file will collect all commands and command output executed by install scripts
+LOG_FILE="/var/log/apex-prime-node-install.log"
+
 # Designated ssh port
 # This is required, and for secure hardened setup should be set to something different than
 # the default ssh port 22
 SSH_PORT=""
+
+# Designated node port
+# This is required
+NODE_PORT="6000"
 
 # Optional swap configuration settings
 # Leave empty to skip swap creation
