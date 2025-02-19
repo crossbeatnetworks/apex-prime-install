@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env -S bash -i
 set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
@@ -77,7 +77,7 @@ else
 
 fi
 
-source ${HOME}/.bashrc
+source "$HOME/.bashrc"
 
 # Update node port in env file
 sed -i -e "s/^#CNODE_PORT=6000/CNODE_PORT=$NODE_PORT/" "$CNODE_HOME/scripts/env"
@@ -95,6 +95,13 @@ cardano-node --version
 # git rev 5d3da8ac771ee5ed424d6c78473c11deabb7a1f3
 #
 # Make sure cardano-node is 9.2.1
+
+# Deploy the services
+cd "$CNODE_HOME/scripts"
+
+./cnode.sh -d
+
+./submitapi.sh -d
 
 # Stop echoing commands in output
 set +x

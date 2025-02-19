@@ -115,7 +115,10 @@ if [[ -n $SWAP_FILE && -n $SWAP_SIZE ]]; then
     # Set file permissions
     sudo chmod 600 "$SWAP_FILE"
 
-    # Add swap entry to /etc/fstab
+    # Make it a swapfile
+    sudo mkswap "$SWAP_FILE"
+
+   # Add swap entry to /etc/fstab
     echo "/swapfile swap swap defaults 0 0" | sudo tee -a /etc/fstab
 
     # Activate swap

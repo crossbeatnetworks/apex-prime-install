@@ -17,8 +17,10 @@ NODE_PORT="6000"
 
 # Optional swap configuration settings
 # Leave empty to skip swap creation
+# SWAP_SIZE value is in number of 1k (1024 byte) blocks
+# so to create a 8GB swap set SWAP_SIZE to 8000000
 # example values:
-# SWAP_SIZE="16G"
+# SWAP_SIZE="16000000"
 # SWAP_FILE="/swapfile"
 SWAP_SIZE=""
 SWAP_FILE=""
