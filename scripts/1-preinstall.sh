@@ -110,7 +110,7 @@ if [[ -n $SWAP_FILE && -n $SWAP_SIZE ]]; then
   # Check if swap file exists
   if [ ! -f "$SWAP_FILE" ]; then
     # Create the swap file
-    sudo dd if=/dev/zero of="$SWAP_FILE" bs=1M count="$SWAP_SIZE"
+    sudo dd if=/dev/zero of="$SWAP_FILE" bs=1024 count="$SWAP_SIZE"
 
     # Set file permissions
     sudo chmod 600 "$SWAP_FILE"
