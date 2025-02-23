@@ -109,6 +109,9 @@ if [[ -n $SWAP_FILE && -n $SWAP_SIZE ]]; then
 
   # Check if swap file exists
   if [ ! -f "$SWAP_FILE" ]; then
+
+    echo "Creating swap file at [ $SWAP_FILE ] of size [ $SWAP_SIZE ] KB. This may take several minutes."
+
     # Create the swap file
     sudo dd if=/dev/zero of="$SWAP_FILE" bs=1024 count="$SWAP_SIZE"
 
