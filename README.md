@@ -48,5 +48,5 @@ The server hardening portion is based on some of the tutorial steps at https://w
 The node binary installation is done by a fork of the Guild Operators scripts at https://github.com/mlabs-haskell/guild-operators-apex  
 arm64 node binaries are provided by Armada Allaince at https://github.com/armada-alliance/cardano-node-binaries  
 The adaptation of the Guild Operators scripts in order to run on Apex Fusion Prime network are at https://github.com/Scitz0/guild-operators-apex  
-Guild Operators documentation can be found at https://cardano-community.github.io/guild-operators/
-Apex Fusion documentation can be found at https://developers.apexfusion.org/documentation
+Guild Operators documentation can be found at https://cardano-community.github.io/guild-operators/  
+Apex Fusion documentation can be found at https://developers.apexfusion.org/documentation  
