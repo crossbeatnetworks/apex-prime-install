@@ -36,7 +36,7 @@ cp install.conf.example install.conf
 
 5. Follow the instructions displayed at the end of the pre-install script output
 
-6. Run the install script as the application user
+6. Run the install script _as the application user that you set in the configuration file_
 ```
 ./scripts/2-install.sh
 ```
