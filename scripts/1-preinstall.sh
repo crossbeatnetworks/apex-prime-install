@@ -3,6 +3,7 @@ set -e
 
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 
+# apply cofiguration as bash variables
 source $SCRIPT_DIR/../install.conf
 
 # Copy stdout and stderr to log file
@@ -172,15 +173,14 @@ fi
 # Restart sshd service
 sudo systemctl restart ssh
 
-# HIGHLY RECOMMEND adding entries in local machine ssh config (in ~/.ssh/config)
-# Host af-main-relay-1
+# HIGHLY RECOMMEND adding entries in your local machine ssh config (in ~/.ssh/config)
+# Host afprime-relay-1
 #   User apex
 #   IdentityFile ~/.ssh/yourprivatekey.pem
-#   HostName ip.address.of.relay
+#   HostName hostname-or-ip.address.of.relay
 #   Port 2822
 
-# Disable root direct user access
-
+# Configure fail2ban
 sudo tee /etc/fail2ban/jail.d/local.conf << CONFIGBLOCK
 
 [sshd]
