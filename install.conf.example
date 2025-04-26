@@ -3,7 +3,7 @@
 # the initial user created for the server, i.e. something different than "ubuntu" or "admin"
 APP_USERNAME=""
 
-# Log file will collect all commands and command output executed by install scripts
+# Log file will collect most commands and command output executed by install scripts
 LOG_FILE="/var/log/apex-prime-node-install.log"
 
 # Designated ssh port
